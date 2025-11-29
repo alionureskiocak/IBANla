@@ -21,5 +21,7 @@ interface IbanRepository {
 
     fun getCategories() : Flow<List<CategoryEntity>>
 
-    fun getCategoryById(categoryId : Int) : CategoryEntity
+   suspend fun getCategoryById(categoryId : Int) : CategoryEntity
+
+    suspend fun initializeCategoryId()
 }

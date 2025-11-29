@@ -49,6 +49,8 @@ class IbanRepositoryImpl @Inject constructor(
         dao.insertCategory(categoryEntity)
     }
 
+
+
     override suspend fun deleteCategory(categoryEntity: CategoryEntity) {
         dao.deleteCategory(categoryEntity)
     }
@@ -57,7 +59,13 @@ class IbanRepositoryImpl @Inject constructor(
         return dao.getCategories()
     }
 
-    override fun getCategoryById(categoryId: Int): CategoryEntity {
-        return dao.getCategoryById(categoryId)
+    override suspend fun getCategoryById(categoryId: Int): CategoryEntity {
+        return dao.getCategoryById(categoryId)!!
+    }
+
+    override suspend fun initializeCategoryId() {
+        if (dao.getCategoryById(1000) == null){
+            dao.insertCategory(CategoryEntity(1000,"IBAN'larım"))
+        }
     }
 }

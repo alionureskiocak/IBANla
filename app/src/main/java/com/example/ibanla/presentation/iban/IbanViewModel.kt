@@ -8,8 +8,11 @@ import com.example.ibanla.domain.model.IbanItem
 import com.example.ibanla.domain.repository.IbanRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,10 +22,32 @@ class IbanViewModel @Inject constructor(
     private val repository: IbanRepository
 ) : ViewModel(){
 
+    init {
+        initializeCategoryId()
+    }
+
+    fun initializeCategoryId(){
+        viewModelScope.launch {
+            repository.initializeCategoryId()
+        }
+    }
+
     private val _state = MutableStateFlow(IbanState())
     val state : StateFlow<IbanState> = _state.asStateFlow()
 
-    fun insertIban(ibanItem: IbanItem){
+    val categorizedIbans : StateFlow<Map<CategoryEntity, List<IbanItem>>> =
+        combine(repository.getAllIbanInfos(),repository.getCategories()) { ibans , categories ->
+            categories.associateWith { category ->
+                ibans.filter { it.categoryId == category.id }.filter { category.id!=1000 }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(),emptyMap())
+
+    val myIbans : StateFlow<List<IbanItem>> = repository.getIbanInfosByCategory(1000).
+            stateIn(viewModelScope, SharingStarted.WhileSubscribed(),emptyList())
+
+
+
+    fun addIban(ibanItem: IbanItem){
         viewModelScope.launch {
             val ibanEntity = ibanItem.toIbanEntity()
             repository.insertIbanInfo(ibanEntity)
@@ -36,7 +61,7 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    fun insertCategory(categoryEntity: CategoryEntity){
+    fun addCategory(categoryEntity: CategoryEntity){
         viewModelScope.launch {
             repository.insertCategory(categoryEntity)
         }

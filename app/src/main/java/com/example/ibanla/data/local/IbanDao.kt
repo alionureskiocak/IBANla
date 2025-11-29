@@ -18,7 +18,6 @@ interface IbanDao {
     @Insert
     suspend fun insertCategory(categoryEntity: CategoryEntity)
 
-
     @Delete
     suspend fun deleteIbanInfo(ibanEntity: IbanEntity)
 
@@ -35,7 +34,7 @@ interface IbanDao {
     fun getCategories() : Flow<List<CategoryEntity>>
 
     @Query("SELECT * FROM categories WHERE id = :categoryId")
-    fun getCategoryById(categoryId : Int) : CategoryEntity
+    suspend fun getCategoryById(categoryId : Int) : CategoryEntity?
 
 
 }
