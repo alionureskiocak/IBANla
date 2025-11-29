@@ -3,6 +3,7 @@ package com.example.ibanla.presentation.iban
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ibanla.data.mappers.toIbanEntity
+import com.example.ibanla.data.model.CategoryEntity
 import com.example.ibanla.domain.model.IbanItem
 import com.example.ibanla.domain.repository.IbanRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +33,41 @@ class IbanViewModel @Inject constructor(
         viewModelScope.launch {
             val ibanEntity = ibanItem.toIbanEntity()
             repository.deleteIbanInfo(ibanEntity)
+        }
+    }
+
+    fun insertCategory(categoryEntity: CategoryEntity){
+        viewModelScope.launch {
+            repository.insertCategory(categoryEntity)
+        }
+    }
+
+    fun deleteCategory(categoryEntity: CategoryEntity){
+        viewModelScope.launch {
+            repository.insertCategory(categoryEntity)
+        }
+    }
+
+    fun getAllCategories(){
+        viewModelScope.launch {
+            repository.getCategories().collect { categories ->
+                _state.update {
+                    it.copy(
+                        categoryList = categories
+                    )
+                }
+            }
+        }
+    }
+
+    fun getCategoryById(categoryId : Int){
+        viewModelScope.launch {
+            val category = repository.getCategoryById(categoryId)
+            _state.update {
+                it.copy(
+                    currentCategory = category
+                )
+            }
         }
     }
 
@@ -72,5 +108,7 @@ class IbanViewModel @Inject constructor(
 data class IbanState(
     val ibanList : List<IbanItem> = emptyList(),
     val categorizedIbanList : List<IbanItem> = emptyList(),
-    val currentIban : IbanItem = IbanItem(-1,"","","",-1)
+    val currentIban : IbanItem = IbanItem(-1,"","","",-1),
+    val categoryList : List<CategoryEntity> = emptyList(),
+    val currentCategory : CategoryEntity = CategoryEntity(-1,"")
 )

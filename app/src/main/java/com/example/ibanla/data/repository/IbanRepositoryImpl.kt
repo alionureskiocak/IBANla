@@ -2,6 +2,7 @@ package com.example.ibanla.data.repository
 
 import com.example.ibanla.data.local.IbanDao
 import com.example.ibanla.data.mappers.toIbanItem
+import com.example.ibanla.data.model.CategoryEntity
 import com.example.ibanla.data.model.IbanEntity
 import com.example.ibanla.domain.model.IbanItem
 import com.example.ibanla.domain.repository.IbanRepository
@@ -42,5 +43,21 @@ class IbanRepositoryImpl @Inject constructor(
             }
         }
         return ibans
+    }
+
+    override suspend fun insertCategory(categoryEntity: CategoryEntity) {
+        dao.insertCategory(categoryEntity)
+    }
+
+    override suspend fun deleteCategory(categoryEntity: CategoryEntity) {
+        dao.deleteCategory(categoryEntity)
+    }
+
+    override fun getCategories(): Flow<List<CategoryEntity>> {
+        return dao.getCategories()
+    }
+
+    override fun getCategoryById(categoryId: Int): CategoryEntity {
+        return dao.getCategoryById(categoryId)
     }
 }

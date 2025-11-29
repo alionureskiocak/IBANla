@@ -1,5 +1,7 @@
 package com.example.ibanla.presentation.iban
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -12,5 +14,11 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
     val allIbans = state.ibanList
     val categorizedIbans = state.categorizedIbanList
     val currentIban = state.currentIban
+
+    Surface(
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+    }
 
 }

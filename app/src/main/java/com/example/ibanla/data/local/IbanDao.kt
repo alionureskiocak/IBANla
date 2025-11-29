@@ -15,14 +15,27 @@ interface IbanDao {
     @Insert
     suspend fun insertIbanInfo(ibanEntity: IbanEntity)
 
+    @Insert
+    suspend fun insertCategory(categoryEntity: CategoryEntity)
+
+
     @Delete
     suspend fun deleteIbanInfo(ibanEntity: IbanEntity)
+
+    @Delete
+    suspend fun deleteCategory(categoryEntity: CategoryEntity)
 
     @Query("SELECT * FROM ibans")
     fun getAllIbanInfos() : Flow<List<IbanEntity>>
 
     @Query("SELECT * FROM ibans WHERE id = :categoryId ")
     fun getIbanInfosByCategory(categoryId : Int) : Flow<List<IbanEntity>>
+
+    @Query("SELECT * FROM categories")
+    fun getCategories() : Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM categories WHERE id = :categoryId")
+    fun getCategoryById(categoryId : Int) : CategoryEntity
 
 
 }

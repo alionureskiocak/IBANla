@@ -1,5 +1,6 @@
 package com.example.ibanla.domain.repository
 
+import com.example.ibanla.data.model.CategoryEntity
 import com.example.ibanla.data.model.IbanEntity
 import com.example.ibanla.domain.model.IbanItem
 import kotlinx.coroutines.flow.Flow
@@ -13,4 +14,12 @@ interface IbanRepository {
     fun getAllIbanInfos() : Flow<List<IbanItem>>
 
     fun getIbanInfosByCategory(categoryId : Int) : Flow<List<IbanItem>>
+
+    suspend fun insertCategory(categoryEntity: CategoryEntity)
+
+    suspend fun deleteCategory(categoryEntity: CategoryEntity)
+
+    fun getCategories() : Flow<List<CategoryEntity>>
+
+    fun getCategoryById(categoryId : Int) : CategoryEntity
 }
