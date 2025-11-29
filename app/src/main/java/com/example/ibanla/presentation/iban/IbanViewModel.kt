@@ -59,6 +59,14 @@ class IbanViewModel @Inject constructor(
         }
     }
 
+    fun changeCurrentIban(iban : IbanItem){
+        _state.update {
+            it.copy(
+                currentIban = iban
+            )
+        }
+    }
+
 }
 
 data class IbanState(
