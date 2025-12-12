@@ -31,23 +31,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -57,7 +60,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -66,7 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.ibanla.R
-import kotlinx.coroutines.selects.select
+import com.example.ibanla.domain.model.IbanItem
 
 @Composable
 fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
@@ -75,86 +77,179 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
     val allIbans = state.ibanList
     val categorizedIbans = state.categorizedIbanList
+    val categories by viewModel.categories.collectAsState()
     val currentIban = state.currentIban
-
+    val currentCategory = state.currentCategory
+    println(categories)
     val myIbans by viewModel.myIbans.collectAsState()
+    val myIbansWithCategory by viewModel.myIbansWithCategory.collectAsState()
+    println(myIbans)
     val otherIbans by viewModel.categorizedIbans.collectAsState()
+
+    var showDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+
+    }
+
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-
+                    showDialog = true
                 }
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
             }
         }
     ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
 
-    }
-    Column(
-        modifier = Modifier.fillMaxSize().padding(top = 20.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+            var selectedIndex by remember { mutableStateOf(0) }
+            var showFirst by remember { mutableStateOf(true) }
+            val titles = listOf("IBAN'larım","Diğer IBAN'lar")
+            var ibanText by remember { mutableStateOf("") }
+            var ownerText by remember {mutableStateOf("")}
+            var selectedCategory by remember{mutableStateOf("")}
 
-        var selectedIndex by remember { mutableStateOf(0) }
-        var showFirst by remember { mutableStateOf(true) }
-        val titles = listOf("IBAN'larım","Diğer IBAN'lar")
+            if (showDialog){
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    AlertDialog(
+                        title = {},
+                        text = {
+                           Column(
+                               modifier = Modifier.fillMaxSize()
+                           ) {
+                               TextField(value = ibanText, onValueChange = {ibanText = it},
+                                   modifier = Modifier.padding(2.dp))
+                               TextField(value = ownerText, onValueChange = {ownerText = it})
 
-        SingleChoiceSegmentedButtonRow {
-            titles.forEachIndexed { index , item ->
-                SegmentedButton(
-                    selected = selectedIndex == index,
-                    onClick = {
-                        selectedIndex = index
-                        showFirst = !showFirst
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = titles.size)
-                ){
-                    Text(item)
+                               LazyColumn {
+                                   items (categories) {
+                                       Button(
+                                           onClick = {
+                                               viewModel.setCurrentCategory(it.categoryName)
+                                           }
+                                       ) {
+                                           Text("Category")
+                                           TODO("KATEGORİ EKLENMESİ TAMAMLANACAK")
+                                       }
+                                   }
+                               }
+                           }
+
+                        },
+                        onDismissRequest = {
+                            showDialog = false
+                        },
+                        confirmButton = {
+                            Button(onClick = {
+                                viewModel.addIban(
+                                    IbanItem(
+                                        0,
+                                        ibanText,
+                                        ownerText,
+                                        getBankNameByIban(ibanText),
+                                        currentCategory.id
+                                    )
+                                )
+                            }) {
+                                Text("Add IBAN")
+                            }
+                        },
+                        dismissButton = {}
+                    )
+                }
+            }
+
+            SingleChoiceSegmentedButtonRow {
+                titles.forEachIndexed { index , item ->
+                    SegmentedButton(
+                        selected = selectedIndex == index,
+                        onClick = {
+                            selectedIndex = index
+                            showFirst = !showFirst
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = titles.size)
+                    ){
+                        Text(item)
+                    }
+                }
+            }
+
+
+            AnimatedContent(
+                targetState = showFirst,
+                transitionSpec = {
+                    slideInHorizontally(
+                        animationSpec = tween(
+                            durationMillis = 500,
+                            easing = FastOutSlowInEasing
+                        ),
+                        initialOffsetX = {
+                            if (targetState) -600 else 600
+                        }
+                    ) + fadeIn() togetherWith slideOutHorizontally(
+                        animationSpec = tween(
+                            durationMillis = 500,
+                            easing = FastOutSlowInEasing
+                        ),
+                        targetOffsetX = {
+                            if (targetState) 600 else -600
+                        }
+                    )
+                }
+            ) {
+                if (it){
+
+                    LazyColumn {
+                        items(myIbansWithCategory) { (ibanItem, category) ->
+                            IbanCard(
+                                label = category.categoryName,
+                                fullName = ibanItem.ownerName,
+                                iban = ibanItem.iban,
+                            ) {}
+                        }
+
+                    }
+
+                }
+                else{
+                    LazyColumn {
+                        otherIbans.forEach { (category, ibans) ->
+                            item {
+                                Text(
+                                    text = category.categoryName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                            items(ibans) { ibanItem ->
+                                viewModel.getCategoryById(ibanItem.categoryId)
+                                IbanCard(
+                                    label = currentCategory.categoryName,
+                                    fullName = ibanItem.ownerName,
+                                    iban = ibanItem.iban,
+                                ) { }
+                            }
+
+                        }
+                    }
                 }
             }
         }
-
-
-        AnimatedContent(
-            targetState = showFirst,
-            transitionSpec = {
-                slideInHorizontally(
-                    animationSpec = tween(
-                        durationMillis = 500,
-                        easing = FastOutSlowInEasing
-                    ),
-                    initialOffsetX = {
-                        if (targetState) -600 else 600
-                    }
-                ) + fadeIn() togetherWith slideOutHorizontally(
-                    animationSpec = tween(
-                        durationMillis = 500,
-                        easing = FastOutSlowInEasing
-                    ),
-                    targetOffsetX = {
-                        if (targetState) 600 else -600
-                    }
-                )
-            }
-        ) {
-            if (it){
-                IbanCard(
-                    label = "Benim IBAN'ım",
-                    fullName = "Ali Onur Eskiocak",
-                    iban = "TR22 0011 1695 9503 47"
-                ) { }
-
-            }
-            else{
-                Text("Diğer ibanlar burda")
-            }
-        }
     }
+
 
 }
 
@@ -173,6 +268,23 @@ fun getLogoById(iban : String) : Int{
         "00010" -> R.drawable.vakifbank
         "00320" -> R.drawable.garanti
         else -> R.drawable.ic_launcher_background
+    }
+}
+
+fun getBankNameByIban(iban : String) : String {
+    val cleaned = iban.replace(" ", "")
+    val code = cleaned.substring(4, 9)
+
+    return when (code) {
+        "00001" -> "Ziraat"
+        "00006" -> "İş Bankası"
+        "00111" -> "Akbank"
+        "00062" -> "Qnb"
+        "00059" -> "Yapı Kredi"
+        "00017" -> "HalkBank"
+        "00010" -> "VakıfBank"
+        "00320" -> "Garanti"
+        else -> ""
     }
 }
 

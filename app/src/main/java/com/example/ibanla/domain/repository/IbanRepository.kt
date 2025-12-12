@@ -1,5 +1,6 @@
 package com.example.ibanla.domain.repository
 
+import androidx.room.Query
 import com.example.ibanla.data.model.CategoryEntity
 import com.example.ibanla.data.model.IbanEntity
 import com.example.ibanla.domain.model.IbanItem
@@ -22,6 +23,8 @@ interface IbanRepository {
     fun getCategories() : Flow<List<CategoryEntity>>
 
    suspend fun getCategoryById(categoryId : Int) : CategoryEntity
+
+    suspend fun getCategoryByName(name : String) : CategoryEntity?
 
     suspend fun initializeCategoryId()
 }

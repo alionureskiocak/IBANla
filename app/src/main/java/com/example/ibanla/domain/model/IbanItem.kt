@@ -7,6 +7,6 @@ data class IbanItem(
     val id : Int,
     val iban : String,
     val ownerName : String,
-    val bankName : String,
+    val bankName : String?,
     val categoryId : Int
 )

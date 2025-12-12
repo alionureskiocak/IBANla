@@ -63,6 +63,10 @@ class IbanRepositoryImpl @Inject constructor(
         return dao.getCategoryById(categoryId)!!
     }
 
+    override suspend fun getCategoryByName(name: String): CategoryEntity? {
+        return dao.getCategoryByName(name)
+    }
+
     override suspend fun initializeCategoryId() {
         if (dao.getCategoryById(1000) == null){
             dao.insertCategory(CategoryEntity(1000,"Benim IBAN'ım"))

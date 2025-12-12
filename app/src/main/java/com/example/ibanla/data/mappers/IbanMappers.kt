@@ -18,7 +18,7 @@ fun IbanItem.toIbanEntity() : IbanEntity{
         id = id,
         iban = iban,
         ownerName = ownerName,
-        bankName = bankName,
+        bankName = bankName!!,
         categoryId = categoryId
     )
 }

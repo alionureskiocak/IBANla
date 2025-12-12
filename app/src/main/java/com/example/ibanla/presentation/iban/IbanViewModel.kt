@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -20,60 +21,71 @@ import javax.inject.Inject
 @HiltViewModel
 class IbanViewModel @Inject constructor(
     private val repository: IbanRepository
-) : ViewModel(){
+) : ViewModel() {
 
     init {
         initializeCategoryId()
     }
 
-    fun initializeCategoryId(){
+    fun initializeCategoryId() {
         viewModelScope.launch {
             repository.initializeCategoryId()
         }
     }
 
     private val _state = MutableStateFlow(IbanState())
-    val state : StateFlow<IbanState> = _state.asStateFlow()
+    val state: StateFlow<IbanState> = _state.asStateFlow()
 
-    val categorizedIbans : StateFlow<Map<CategoryEntity, List<IbanItem>>> =
-        combine(repository.getAllIbanInfos(),repository.getCategories()) { ibans , categories ->
+    val categorizedIbans: StateFlow<Map<CategoryEntity, List<IbanItem>>> =
+        combine(repository.getAllIbanInfos(), repository.getCategories()) { ibans, categories ->
             categories.associateWith { category ->
-                ibans.filter { it.categoryId == category.id }.filter { category.id!=1000 }
+                ibans.filter { it.categoryId == category.id }.filter { category.id != 1000 }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(),emptyMap())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyMap())
 
-    val myIbans : StateFlow<List<IbanItem>> = repository.getIbanInfosByCategory(1000).
-            stateIn(viewModelScope, SharingStarted.WhileSubscribed(),emptyList())
+    val myIbans: StateFlow<List<IbanItem>> = repository.getIbanInfosByCategory(1000)
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+
+    val categories = repository.getCategories().stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(), emptyList()
+    )
+
+    val myIbansWithCategory = combine(myIbans, categories) { ibans, cats ->
+        ibans.map { iban ->
+            val category = cats.find { it.id == iban.categoryId } ?: CategoryEntity(-1, "")
+            iban to category
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
 
-
-    fun addIban(ibanItem: IbanItem){
+    fun addIban(ibanItem: IbanItem) {
         viewModelScope.launch {
             val ibanEntity = ibanItem.toIbanEntity()
             repository.insertIbanInfo(ibanEntity)
         }
     }
 
-    fun deleteIban(ibanItem: IbanItem){
+    fun deleteIban(ibanItem: IbanItem) {
         viewModelScope.launch {
             val ibanEntity = ibanItem.toIbanEntity()
             repository.deleteIbanInfo(ibanEntity)
         }
     }
 
-    fun addCategory(categoryEntity: CategoryEntity){
+    fun addCategory(categoryEntity: CategoryEntity) {
         viewModelScope.launch {
             repository.insertCategory(categoryEntity)
         }
     }
 
-    fun deleteCategory(categoryEntity: CategoryEntity){
+    fun deleteCategory(categoryEntity: CategoryEntity) {
         viewModelScope.launch {
             repository.insertCategory(categoryEntity)
         }
     }
 
-    fun getAllCategories(){
+    fun getAllCategories() {
         viewModelScope.launch {
             repository.getCategories().collect { categories ->
                 _state.update {
@@ -85,7 +97,7 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    fun getCategoryById(categoryId : Int){
+    fun getCategoryById(categoryId: Int) {
         viewModelScope.launch {
             val category = repository.getCategoryById(categoryId)
             _state.update {
@@ -96,7 +108,13 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    fun getAllIbans(){
+    fun getCategoryByName(name: String) {
+        viewModelScope.launch {
+            repository.getCategoryByName(name)
+        }
+    }
+
+    fun getAllIbans() {
         viewModelScope.launch {
             repository.getAllIbanInfos().collect { ibanList ->
                 _state.update {
@@ -108,7 +126,7 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    fun getAllIbansByCategory(categoryId : Int){
+    fun getAllIbansByCategory(categoryId: Int) {
         viewModelScope.launch {
             repository.getIbanInfosByCategory(categoryId).collect { ibanList ->
                 _state.update {
@@ -120,7 +138,22 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    fun changeCurrentIban(iban : IbanItem){
+    fun setCurrentCategory(name: String) {
+        viewModelScope.launch {
+            val category = repository.getCategoryByName(name)
+            category?.let {
+                _state.update {
+                    it.copy(
+                        currentCategory = category
+                    )
+                }
+            }
+        }
+
+
+    }
+
+    fun changeCurrentIban(iban: IbanItem) {
         _state.update {
             it.copy(
                 currentIban = iban
@@ -131,9 +164,9 @@ class IbanViewModel @Inject constructor(
 }
 
 data class IbanState(
-    val ibanList : List<IbanItem> = emptyList(),
-    val categorizedIbanList : List<IbanItem> = emptyList(),
-    val currentIban : IbanItem = IbanItem(-1,"","","",-1),
-    val categoryList : List<CategoryEntity> = emptyList(),
-    val currentCategory : CategoryEntity = CategoryEntity(-1,"")
+    val ibanList: List<IbanItem> = emptyList(),
+    val categorizedIbanList: List<IbanItem> = emptyList(),
+    val currentIban: IbanItem = IbanItem(-1, "", "", "", -1),
+    val categoryList: List<CategoryEntity> = emptyList(),
+    val currentCategory: CategoryEntity = CategoryEntity(1000, "")
 )
