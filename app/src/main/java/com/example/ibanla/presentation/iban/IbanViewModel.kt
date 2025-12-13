@@ -38,7 +38,9 @@ class IbanViewModel @Inject constructor(
 
     val categorizedIbans: StateFlow<Map<CategoryEntity, List<IbanItem>>> =
         combine(repository.getAllIbanInfos(), repository.getCategories()) { ibans, categories ->
-            categories.associateWith { category ->
+            categories
+                .filter { it.id != 1000 }
+                .associateWith { category ->
                 ibans.filter { it.categoryId == category.id }.filter { category.id != 1000 }
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyMap())
