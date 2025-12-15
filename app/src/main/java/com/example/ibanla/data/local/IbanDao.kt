@@ -14,7 +14,7 @@ import java.nio.charset.CodingErrorAction.IGNORE
 @Dao
 interface IbanDao {
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIbanInfo(ibanEntity: IbanEntity)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)

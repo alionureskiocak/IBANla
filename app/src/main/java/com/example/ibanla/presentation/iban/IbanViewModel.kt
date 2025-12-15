@@ -41,8 +41,14 @@ class IbanViewModel @Inject constructor(
             categories
                 .filter { it.id != 1000 }
                 .associateWith { category ->
-                ibans.filter { it.categoryId == category.id }.filter { category.id != 1000 }
+                ibans.filter {
+                    it.categoryId == category.id
+                }
             }
+                .filterValues {
+                    it.isNotEmpty()
+                }
+
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyMap())
 
     val myIbans: StateFlow<List<IbanItem>> = repository.getIbanInfosByCategory(1000)
@@ -65,6 +71,19 @@ class IbanViewModel @Inject constructor(
         viewModelScope.launch {
             val ibanEntity = ibanItem.toIbanEntity()
             repository.insertIbanInfo(ibanEntity)
+               _state.update {
+                   it.copy(
+                       currentTab = if (ibanItem.categoryId == 1000) IbanTab.MY else IbanTab.OTHER
+                   )
+               }
+        }
+    }
+
+    fun onTabSelected(tab : IbanTab){
+        _state.update {
+            it.copy(
+                currentTab = tab
+            )
         }
     }
 
@@ -170,5 +189,11 @@ data class IbanState(
     val categorizedIbanList: List<IbanItem> = emptyList(),
     val currentIban: IbanItem = IbanItem(-1, "", "", "", -1),
     val categoryList: List<CategoryEntity> = emptyList(),
-    val currentCategory: CategoryEntity = CategoryEntity(1000, "")
+    val currentCategory: CategoryEntity = CategoryEntity(1000, ""),
+    val currentTab : IbanTab = IbanTab.MY
 )
+
+enum class IbanTab{
+    MY,
+    OTHER
+}

@@ -94,7 +94,7 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
     val myIbansWithCategory by viewModel.myIbansWithCategory.collectAsState()
     println(myIbans)
     val otherIbans by viewModel.categorizedIbans.collectAsState()
-
+    val selectedTab = state.currentTab
     var showDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -122,114 +122,41 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            var selectedIndex by remember { mutableStateOf(0) }
-            var showFirst by remember { mutableStateOf(true) }
-            val titles = listOf("IBAN'larım","Diğer IBAN'lar")
-            var ibanText by remember { mutableStateOf("") }
-            var ownerText by remember {mutableStateOf("")}
-            var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+            val selectedIndex = when(selectedTab){
+                IbanTab.MY -> 0
+                IbanTab.OTHER -> 1
+            }
+            var showFirst = selectedTab == IbanTab.MY
+            val titles = listOf("IBAN'larım", "Diğer IBAN'lar")
 
-            if (showDialog){
-                Column(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    AlertDialog(
-                        onDismissRequest = { showDialog = false },
-                        title = {
-                            Text(
-                                text = "Yeni IBAN Ekle",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        text = {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
 
-                                OutlinedTextField(
-                                    value = ibanText,
-                                    onValueChange = { ibanText = it },
-                                    label = { Text("IBAN") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                OutlinedTextField(
-                                    value = ownerText,
-                                    onValueChange = { ownerText = it },
-                                    label = { Text("İsim") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Text(
-                                    text = "Kategori Seç",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    modifier = Modifier.padding(top = 8.dp)
-                                )
-
-                                LazyVerticalGrid(
-                                    columns = GridCells.Adaptive(minSize = 100.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.heightIn(max = 200.dp)
-                                ) {
-                                    items(categories) { category ->
-                                        val isSelected = selectedCategory?.id == category.id
-
-                                        FilterChip(
-                                            selected = isSelected,
-                                            onClick = {
-                                                selectedCategory = category
-                                            },
-                                            label = { Text(category.categoryName) }
-                                        )
-
-                                    }
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            Button(
-                                enabled = selectedCategory?.id != null && ibanText.length >= 26,
-                                onClick = {
-                                    showDialog = false
-                                    viewModel.addIban(
-                                        IbanItem(
-                                            id = 0,
-                                            iban = ibanText,
-                                            ownerName = ownerText,
-                                            bankName = getBankNameByIban(ibanText),
-                                            categoryId = selectedCategory?.id!!
-                                        )
-                                    )
-                                }
-                            ) {
-                                Text("Ekle")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showDialog = false }) {
-                                Text("İptal")
-                            }
-                        }
-                    )
-
-                }
+            if (showDialog) {
+                DialogScreen(
+                    categories = categories,
+                    showFirst = showFirst,
+                    viewModel = viewModel,
+                    onDismiss = {
+                        showDialog = false
+                    },
+                    onClick = {
+                    })
             }
 
             SingleChoiceSegmentedButtonRow {
-                titles.forEachIndexed { index , item ->
+                titles.forEachIndexed { index, item ->
                     SegmentedButton(
                         selected = selectedIndex == index,
                         onClick = {
-                            selectedIndex = index
-                            showFirst = !showFirst
+                            viewModel.onTabSelected(
+                                if (index == 0) IbanTab.MY else IbanTab.OTHER
+                            )
+
                         },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = titles.size)
-                    ){
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = titles.size
+                        )
+                    ) {
                         Text(item)
                     }
                 }
@@ -258,7 +185,7 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                     )
                 }
             ) {
-                if (it){
+                if (it) {
 
                     LazyColumn {
                         items(myIbansWithCategory) { (ibanItem, category) ->
@@ -271,8 +198,7 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
 
                     }
 
-                }
-                else{
+                } else {
                     LazyColumn {
                         otherIbans.forEach { (category, ibans) ->
                             item {
@@ -297,14 +223,116 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
             }
         }
     }
+}
 
+@Composable
+fun DialogScreen(
+    categories: List<CategoryEntity>,
+    showFirst: Boolean,
+    viewModel: IbanViewModel,
+    onDismiss: () -> Unit,
+    onClick: () -> Unit
+) {
 
+    var ibanText by remember { mutableStateOf("") }
+    var ownerText by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+
+    Column(
+
+    ) {
+        AlertDialog(
+            onDismissRequest = { onDismiss() },
+            title = {
+                Text(
+                    text = "Yeni IBAN Ekle",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    OutlinedTextField(
+                        value = ibanText,
+                        onValueChange = { ibanText = it },
+                        label = { Text("IBAN") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = ownerText,
+                        onValueChange = { ownerText = it },
+                        label = { Text("İsim") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Text(
+                        text = "Kategori Seç",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 100.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.heightIn(max = 200.dp)
+                    ) {
+                        items(categories) { category ->
+                            val isSelected = selectedCategory?.id == category.id
+
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    selectedCategory = category
+                                },
+                                label = { Text(category.categoryName) }
+                            )
+
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = selectedCategory?.id != null && ibanText.length >= 26,
+                    onClick = {
+                        onDismiss()
+                        onClick()
+                        viewModel.addIban(
+                            IbanItem(
+                                id = 0,
+                                iban = ibanText,
+                                ownerName = ownerText,
+                                bankName = getBankNameByIban(ibanText),
+                                categoryId = selectedCategory?.id!!
+                            )
+                        )
+                    }
+                ) {
+                    Text("Ekle")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onDismiss() }) {
+                    Text("İptal")
+                }
+            }
+        )
+
+    }
 }
 
 
-fun getLogoById(iban : String) : Int{
-    val cleaned = iban.replace(" ","")
-    val code = cleaned.substring(4,9)
+fun getLogoById(iban: String): Int {
+    val cleaned = iban.replace(" ", "")
+    val code = cleaned.substring(4, 9)
 
     return when (code) {
         "00010" -> R.drawable.ziraat
@@ -319,9 +347,9 @@ fun getLogoById(iban : String) : Int{
     }
 }
 
-fun getBankNameByIban(iban : String) : String {
+fun getBankNameByIban(iban: String): String {
     val cleaned = iban.replace(" ", "")
-    val code = cleaned.substring(4,9)
+    val code = cleaned.substring(4, 9)
 
     return when (code) {
         "00010" -> "Ziraat"
@@ -335,6 +363,7 @@ fun getBankNameByIban(iban : String) : String {
         else -> ""
     }
 }
+
 @Composable
 fun IbanCard(
     label: String,
@@ -348,11 +377,11 @@ fun IbanCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Row(
             modifier = Modifier
@@ -361,71 +390,60 @@ fun IbanCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            /* -------- BIG LOGO -------- */
+            /* LOGO */
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(52.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    .padding(8.dp),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        RoundedCornerShape(12.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = bankLogo),
+                    painter = painterResource(bankLogo),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.size(36.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(Modifier.width(12.dp))
 
-            /* -------- TEXT AREA -------- */
+            /* TEXT */
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-
                 Text(
                     text = fullName,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 Text(
-                    text = iban,
+                    text = iban.chunked(4).joinToString(" "),
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 0.5.sp
+                        fontFamily = FontFamily.Monospace
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Text(
-                    text = label.uppercase(),
+                    text = label,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            /* -------- ACTION -------- */
+            /* COPY */
             Icon(
                 imageVector = Icons.Default.ContentCopy,
-                contentDescription = "Copy IBAN",
-                tint = MaterialTheme.colorScheme.primary,
+                contentDescription = null,
                 modifier = Modifier
-                    .size(22.dp)
-                    .clickable { onCopyClick(iban) }
+                    .size(20.dp)
+                    .clickable { onCopyClick(iban) },
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
 }
-
