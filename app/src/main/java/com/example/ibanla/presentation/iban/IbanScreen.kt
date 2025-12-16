@@ -2,26 +2,14 @@ package com.example.ibanla.presentation.iban
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +17,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,11 +26,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -53,32 +38,22 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.ibanla.R
 import com.example.ibanla.data.model.CategoryEntity
@@ -99,7 +74,8 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
     println(myIbans)
     val otherIbans by viewModel.categorizedIbans.collectAsState()
     val selectedTab = state.currentTab
-    var showDialog by remember { mutableStateOf(false) }
+    var showIbanDialog by remember { mutableStateOf(false) }
+    var showCategoryDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
 
@@ -111,7 +87,7 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    showDialog = true
+                    showIbanDialog = true
                 }
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
@@ -134,17 +110,33 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
             val titles = listOf("IBAN'larım", "Diğer IBAN'lar")
 
 
-            if (showDialog) {
+            if (showIbanDialog) {
                 DialogScreen(
                     categories = categories,
                     showFirst = showFirst,
                     viewModel = viewModel,
                     onDismiss = {
-                        showDialog = false
+                        showIbanDialog = false
                     },
                     onCategoryAdded = {
-
+                        showCategoryDialog = true
+                        showIbanDialog = false
                     })
+            }
+            if (showCategoryDialog){
+                CategoryDialog(
+                    onDismiss = {
+                        showIbanDialog = true
+                        showCategoryDialog = false
+                    },
+                    onCategoryAdded = {
+                        viewModel.addCategory(
+                            CategoryEntity(
+                                categoryName = it
+                            )
+                        )
+                    }
+                )
             }
 
             SingleChoiceSegmentedButtonRow {
@@ -458,3 +450,62 @@ fun IbanCard(
         }
     }
 }
+
+@Composable
+fun CategoryDialog(
+    onDismiss: () -> Unit,
+    onCategoryAdded: (String) -> Unit
+) {
+    var categoryName by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Yeni Kategori Ekle",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                OutlinedTextField(
+                    value = categoryName,
+                    onValueChange = { categoryName = it },
+                    label = { Text("Kategori adı") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Örnek: Aile, İş, Arkadaşlar",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = categoryName.isNotBlank(),
+                onClick = {
+                    onCategoryAdded(categoryName.trim())
+                    onDismiss()
+                }
+            ) {
+                Text("Ekle")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                onDismiss()
+            }) {
+                Text("İptal")
+            }
+        }
+    )
+}
+
