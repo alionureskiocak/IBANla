@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -52,11 +53,13 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -73,6 +76,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -138,7 +142,8 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                     onDismiss = {
                         showDialog = false
                     },
-                    onClick = {
+                    onCategoryAdded = {
+
                     })
             }
 
@@ -231,7 +236,7 @@ fun DialogScreen(
     showFirst: Boolean,
     viewModel: IbanViewModel,
     onDismiss: () -> Unit,
-    onClick: () -> Unit
+    onCategoryAdded : () -> Unit
 ) {
 
     var ibanText by remember { mutableStateOf("") }
@@ -272,12 +277,6 @@ fun DialogScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Text(
-                        text = "Kategori Seç",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = 100.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -292,10 +291,23 @@ fun DialogScreen(
                                 onClick = {
                                     selectedCategory = category
                                 },
-                                label = { Text(category.categoryName) }
+                                label = { Text(category.categoryName, textAlign = TextAlign.Center) }
                             )
 
                         }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    )
+                    {
+                        FilterChip(
+                            selected = false,
+                            label = { Text(text = "Kategori Ekle") },
+                            onClick = {
+                                onCategoryAdded()
+                            }
+                        )
                     }
                 }
             },
@@ -304,7 +316,6 @@ fun DialogScreen(
                     enabled = selectedCategory?.id != null && ibanText.length >= 26,
                     onClick = {
                         onDismiss()
-                        onClick()
                         viewModel.addIban(
                             IbanItem(
                                 id = 0,
@@ -390,7 +401,7 @@ fun IbanCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            /* LOGO */
+
             Box(
                 modifier = Modifier
                     .size(52.dp)
@@ -409,7 +420,7 @@ fun IbanCard(
 
             Spacer(Modifier.width(12.dp))
 
-            /* TEXT */
+
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -435,7 +446,7 @@ fun IbanCard(
                 )
             }
 
-            /* COPY */
+
             Icon(
                 imageVector = Icons.Default.ContentCopy,
                 contentDescription = null,

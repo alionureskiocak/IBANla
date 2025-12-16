@@ -71,8 +71,14 @@ class IbanRepositoryImpl @Inject constructor(
         if (dao.getCategoryById(1000) == null){
             dao.insertCategory(CategoryEntity(1000,"Benim IBAN'ım"))
         }
-        if (dao.getCategoryById(999) == null){
-            dao.insertCategory(CategoryEntity(999,"Arkadaşlarım"))
+        if (dao.getCategoryById(1001) == null){
+            dao.insertCategory(CategoryEntity(1001,"Arkadaşlarım"))
+        }
+        if (dao.getCategoryById(1002) == null){
+            dao.insertCategory(CategoryEntity(1002,"Ailem"))
+        }
+        if (dao.getCategoryById(1003) == null){
+            dao.insertCategory(CategoryEntity(1003,"İş"))
         }
     }
 }
