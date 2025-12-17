@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.example.ibanla.data.model.CategoryEntity
 import com.example.ibanla.data.model.IbanEntity
 import com.example.ibanla.domain.model.IbanItem
@@ -17,11 +18,14 @@ interface IbanDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIbanInfo(ibanEntity: IbanEntity)
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertCategory(categoryEntity: CategoryEntity)
-
     @Delete
     suspend fun deleteIbanInfo(ibanEntity: IbanEntity)
+
+    @Update
+    suspend fun updateIbanInfo(ibanEntity: IbanEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertCategory(categoryEntity: CategoryEntity)
 
     @Delete
     suspend fun deleteCategory(categoryEntity: CategoryEntity)
