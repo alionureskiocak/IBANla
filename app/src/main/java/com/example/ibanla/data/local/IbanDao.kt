@@ -41,5 +41,4 @@ interface IbanDao {
     @Query("SELECT * FROM categories WHERE categoryName = :name")
     suspend fun getCategoryByName(name : String) : CategoryEntity?
 
-
 }

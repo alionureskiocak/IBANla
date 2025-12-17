@@ -7,6 +7,9 @@ import com.example.ibanla.data.model.CategoryEntity
 import com.example.ibanla.domain.model.IbanItem
 import com.example.ibanla.domain.repository.IbanRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +18,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,6 +39,29 @@ class IbanViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(IbanState())
     val state: StateFlow<IbanState> = _state.asStateFlow()
+
+    private val _showTick = MutableStateFlow(false)
+    val showTick : StateFlow<Boolean> = _showTick.asStateFlow()
+
+    private var timerJob : Job? = null
+
+    fun startCopiedTimer(){
+        if (timerJob?.isActive == true) return
+
+        var countDown = 3
+
+        timerJob = viewModelScope.launch {
+            _showTick.value = true
+            while (isActive){
+                delay(1000)
+                countDown--
+                if (countDown == 0){
+                    timerJob?.cancel()
+                    _showTick.value = false
+                }
+            }
+        }
+    }
 
     val categorizedIbans: StateFlow<Map<CategoryEntity, List<IbanItem>>> =
         combine(repository.getAllIbanInfos(), repository.getCategories()) { ibans, categories ->

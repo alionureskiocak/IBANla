@@ -1,5 +1,6 @@
 package com.example.ibanla.presentation.iban
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -29,6 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -49,7 +51,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -76,6 +81,10 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
     val selectedTab = state.currentTab
     var showIbanDialog by remember { mutableStateOf(false) }
     var showCategoryDialog by remember { mutableStateOf(false) }
+
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+    val showTick by viewModel.showTick.collectAsState()
 
     LaunchedEffect(Unit) {
 
@@ -190,7 +199,14 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                                 label = category.categoryName,
                                 fullName = ibanItem.ownerName,
                                 iban = ibanItem.iban,
-                            ) {}
+                                showTick = showTick
+                            ) { iban ->
+                                clipboardManager.setText(
+                                    AnnotatedString(iban)
+                                )
+                                Toast.makeText(context,"Copied",Toast.LENGTH_SHORT).show()
+                                viewModel.startCopiedTimer()
+                            }
                         }
 
                     }
@@ -211,7 +227,14 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                                     label = currentCategory.categoryName,
                                     fullName = ibanItem.ownerName,
                                     iban = ibanItem.iban,
-                                ) { }
+                                    showTick = showTick
+                                ) { iban ->
+                                    clipboardManager.setText(
+                                        AnnotatedString(iban)
+                                    )
+                                    Toast.makeText(context,"Copied",Toast.LENGTH_SHORT).show()
+                                    viewModel.startCopiedTimer()
+                                }
                             }
 
                         }
@@ -372,6 +395,7 @@ fun IbanCard(
     label: String,
     fullName: String,
     iban: String,
+    showTick : Boolean,
     onCopyClick: (String) -> Unit
 ) {
     val bankLogo = getLogoById(iban)
@@ -440,7 +464,7 @@ fun IbanCard(
 
 
             Icon(
-                imageVector = Icons.Default.ContentCopy,
+                imageVector =if (!showTick) Icons.Default.ContentCopy else Icons.Default.CheckCircle,
                 contentDescription = null,
                 modifier = Modifier
                     .size(20.dp)
