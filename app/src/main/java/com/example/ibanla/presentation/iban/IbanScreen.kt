@@ -199,11 +199,12 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                     LazyColumn {
                         items(myIbansWithCategory) { (ibanItem, category) ->
                             IbanCard(
-                                label = category.categoryName,
-                                fullName = ibanItem.ownerName,
-                                iban = ibanItem.iban,
+                                ibanItem = ibanItem,
+                                category = category,
                                 showTick = showTick,
-                                onCardClick = {
+                                onCardClick = { iban ->
+                                    TODO("IBAN'I AL")
+                                    iban.
                                     showIbanDialog = true
                                     clickedForNewIban = false
                                 },
@@ -232,9 +233,8 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                             items(ibans) { ibanItem ->
                                 viewModel.getCategoryById(ibanItem.categoryId)
                                 IbanCard(
-                                    label = currentCategory.categoryName,
-                                    fullName = ibanItem.ownerName,
-                                    iban = ibanItem.iban,
+                                    ibanItem = ibanItem,
+                                    category = category,
                                     showTick = showTick,
                                     onCardClick = {
                                         showIbanDialog = true
@@ -417,21 +417,20 @@ fun getBankNameByIban(iban: String): String {
 
 @Composable
 fun IbanCard(
-    label: String,
-    fullName: String,
-    iban: String,
+    ibanItem : IbanItem,
+    category: CategoryEntity,
     showTick : Boolean,
-    onCardClick : () -> Unit,
+    onCardClick : (IbanItem) -> Unit,
     onCopyClick: (String) -> Unit
 ) {
-    val bankLogo = getLogoById(iban)
+    val bankLogo = getLogoById(ibanItem.iban)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clickable{
-                onCardClick()
+                onCardClick(ibanItem)
             }
         ,
         shape = RoundedCornerShape(14.dp),
@@ -472,13 +471,13 @@ fun IbanCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = fullName,
+                    text = ibanItem.ownerName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
 
                 Text(
-                    text = iban.chunked(4).joinToString(" "),
+                    text = ibanItem.iban.chunked(4).joinToString(" "),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = FontFamily.Monospace
                     ),
@@ -486,7 +485,7 @@ fun IbanCard(
                 )
 
                 Text(
-                    text = label,
+                    text = category.categoryName,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -498,7 +497,7 @@ fun IbanCard(
                 contentDescription = null,
                 modifier = Modifier
                     .size(20.dp)
-                    .clickable { onCopyClick(iban) },
+                    .clickable { onCopyClick(ibanItem.iban) },
                 tint = MaterialTheme.colorScheme.primary
             )
         }
