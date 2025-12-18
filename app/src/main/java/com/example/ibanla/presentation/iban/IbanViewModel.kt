@@ -121,6 +121,12 @@ class IbanViewModel @Inject constructor(
         }
     }
 
+    fun updateIban(ibanItem: IbanItem){
+        viewModelScope.launch {
+            repository.updateIbanInfo(ibanItem)
+        }
+    }
+
     fun addCategory(categoryEntity: CategoryEntity) {
         viewModelScope.launch {
             repository.insertCategory(categoryEntity)
@@ -133,17 +139,6 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    fun getAllCategories() {
-        viewModelScope.launch {
-            repository.getCategories().collect { categories ->
-                _state.update {
-                    it.copy(
-                        categoryList = categories
-                    )
-                }
-            }
-        }
-    }
 
     fun getCategoryById(categoryId: Int) {
         viewModelScope.launch {
@@ -162,49 +157,22 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    fun getAllIbans() {
+
+
+    fun setCurrentCategory(categoryEntity: CategoryEntity) {
         viewModelScope.launch {
-            repository.getAllIbanInfos().collect { ibanList ->
-                _state.update {
-                    it.copy(
-                        ibanList = ibanList
-                    )
-                }
+            _state.update {
+                it.copy(
+                    currentCategory = categoryEntity
+                )
             }
         }
     }
 
-    fun getAllIbansByCategory(categoryId: Int) {
-        viewModelScope.launch {
-            repository.getIbanInfosByCategory(categoryId).collect { ibanList ->
-                _state.update {
-                    it.copy(
-                        categorizedIbanList = ibanList
-                    )
-                }
-            }
-        }
-    }
-
-    fun setCurrentCategory(name: String) {
-        viewModelScope.launch {
-            val category = repository.getCategoryByName(name)
-            category?.let {
-                _state.update {
-                    it.copy(
-                        currentCategory = category
-                    )
-                }
-            }
-        }
-
-
-    }
-
-    fun changeCurrentIban(iban: IbanItem) {
+    fun setCurrentIban(ibanItem: IbanItem) {
         _state.update {
             it.copy(
-                currentIban = iban
+                currentIban = ibanItem
             )
         }
     }

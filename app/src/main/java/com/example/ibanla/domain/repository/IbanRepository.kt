@@ -12,6 +12,8 @@ interface IbanRepository {
 
     suspend fun deleteIbanInfo(ibanEntity: IbanEntity)
 
+    suspend fun updateIbanInfo(ibanItem: IbanItem)
+
     fun getAllIbanInfos() : Flow<List<IbanItem>>
 
     fun getIbanInfosByCategory(categoryId : Int) : Flow<List<IbanItem>>

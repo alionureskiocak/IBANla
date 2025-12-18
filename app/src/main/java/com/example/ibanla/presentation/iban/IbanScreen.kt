@@ -62,14 +62,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.ibanla.R
 import com.example.ibanla.data.model.CategoryEntity
+import com.example.ibanla.data.model.IbanWithCategory
 import com.example.ibanla.domain.model.IbanItem
 
 @Composable
 fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
 
     val state by viewModel.state.collectAsState()
-    val allIbans = state.ibanList
-    val categorizedIbans = state.categorizedIbanList
     val categories by viewModel.categories.collectAsState()
     val currentIban = state.currentIban
     val currentCategory = state.currentCategory
@@ -88,8 +87,6 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val showTick by viewModel.showTick.collectAsState()
 
-    TODO("Card'a tıklayınca hangi iban entity'sine tıkladığımı bilmiyorum bunu bulup gerekli yerlere" +
-            "yazdırmam lazım")
 
 
     Scaffold(
@@ -124,6 +121,8 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
             if (showIbanDialog) {
                 IbanDialogScreen(
                     clickedForNewIban = clickedForNewIban,
+                    currentIban = currentIban,
+                    currentCategory = currentCategory,
                     categories = categories,
                     showFirst = showFirst,
                     viewModel = viewModel,
@@ -202,9 +201,11 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                                 ibanItem = ibanItem,
                                 category = category,
                                 showTick = showTick,
-                                onCardClick = { iban ->
-                                    TODO("IBAN'I AL")
-                                    iban.
+                                onCardClick = { ibanWithCategory ->
+                                    val ibanItem = ibanWithCategory.ibanItem
+                                    val categoryEntity = ibanWithCategory.categoryEntity
+                                    viewModel.setCurrentIban(ibanItem)
+                                    viewModel.setCurrentCategory(categoryEntity)
                                     showIbanDialog = true
                                     clickedForNewIban = false
                                 },
@@ -236,7 +237,11 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                                     ibanItem = ibanItem,
                                     category = category,
                                     showTick = showTick,
-                                    onCardClick = {
+                                    onCardClick = { ibanWithCategory ->
+                                        val ibanItem = ibanWithCategory.ibanItem
+                                        val categoryEntity = ibanWithCategory.categoryEntity
+                                        viewModel.setCurrentIban(ibanItem)
+                                        viewModel.setCurrentCategory(categoryEntity)
                                         showIbanDialog = true
                                         clickedForNewIban = false
                                     },
@@ -260,6 +265,8 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
 @Composable
 fun IbanDialogScreen(
     clickedForNewIban : Boolean,
+    currentIban : IbanItem,
+    currentCategory : CategoryEntity,
     categories: List<CategoryEntity>,
     showFirst: Boolean,
     viewModel: IbanViewModel,
@@ -269,10 +276,18 @@ fun IbanDialogScreen(
 
     var ibanText by remember { mutableStateOf("") }
     var ownerText by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+    var selectedCategoryChanged by remember { mutableStateOf(false) }
+
+    if (!clickedForNewIban){
+        ibanText = currentIban.iban
+        ownerText = currentIban.ownerName
+        selectedCategory = currentCategory
+    }
 
     var ibanUpdateText by remember { mutableStateOf(ibanText) }
     var ownerUpdateText by remember { mutableStateOf(ownerText) }
-    var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+
 
     Column(
 
@@ -320,6 +335,9 @@ fun IbanDialogScreen(
                             FilterChip(
                                 selected = isSelected,
                                 onClick = {
+                                    if (selectedCategory!= category && !clickedForNewIban){
+                                        selectedCategoryChanged = true
+                                    }
                                     selectedCategory = category
                                 },
                                 label = { Text(category.categoryName, textAlign = TextAlign.Center) }
@@ -347,7 +365,7 @@ fun IbanDialogScreen(
                     enabled = (clickedForNewIban && selectedCategory?.id != null && ibanText.length >= 26)
                             || selectedCategory?.id != null && ibanText.length >= 26 && (
                                     ibanText != ibanUpdateText || ownerText != ownerUpdateText
-                                    )
+                                    ) || selectedCategoryChanged
                     ,
                     onClick = {
                         onDismiss()
@@ -362,7 +380,13 @@ fun IbanDialogScreen(
                                 )
                             )
                         }else{
-                            TODO("viewmodel.update çağrılacak ama daha oluşturulmadı")
+                           viewModel.updateIban(IbanItem(
+                               currentIban.id,
+                               ibanText,
+                               ownerText,
+                               getBankNameByIban(ibanText),
+                               selectedCategory!!.id
+                           ))
                         }
 
                     }
@@ -420,17 +444,19 @@ fun IbanCard(
     ibanItem : IbanItem,
     category: CategoryEntity,
     showTick : Boolean,
-    onCardClick : (IbanItem) -> Unit,
+    onCardClick : (IbanWithCategory) -> Unit,
     onCopyClick: (String) -> Unit
 ) {
     val bankLogo = getLogoById(ibanItem.iban)
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clickable{
-                onCardClick(ibanItem)
+                val ibanWithCategory = IbanWithCategory(
+                    ibanItem,category
+                )
+                onCardClick(ibanWithCategory)
             }
         ,
         shape = RoundedCornerShape(14.dp),
@@ -561,91 +587,3 @@ fun CategoryDialog(
         }
     )
 }
-
-@Composable
-fun IbanDetailsDialog(
-    categories: List<CategoryEntity>,
-    ibanText : String,
-    ownerText : String,
-    category : CategoryEntity,
-    onUpdate : (IbanItem) -> Unit,
-    onDelete : (IbanItem) -> Unit,
-    onDismiss: () -> Unit,
-    onCategoryAdded : () -> Unit
-) {
-
-    var iban by remember { mutableStateOf(ibanText) }
-    var owner by remember { mutableStateOf(ownerText) }
-    var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
-    // değişken tut, ibanText iban'a eşitse ve diğer durumda, değişiklik yok demek update butonu disabled
-    AlertDialog(
-        onDismissRequest = { onDismiss() },
-        title = {
-            Text(
-                text = "IBAN Detayları",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-
-                OutlinedTextField(
-                    value = iban,
-                    onValueChange = { iban = it },
-                    label = { Text("IBAN") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = owner,
-                    onValueChange = { owner = it },
-                    label = { Text("İsim") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 100.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 200.dp)
-                ) {
-                    items(categories) { category ->
-                        val isSelected = selectedCategory?.id == category.id
-
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = {
-                                selectedCategory = category
-                            },
-                            label = { Text(category.categoryName, textAlign = TextAlign.Center) }
-                        )
-
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                )
-                {
-                    FilterChip(
-                        selected = false,
-                        label = { Text(text = "Kategori Ekle") },
-                        onClick = {
-                            onCategoryAdded()
-                        }
-                    )
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {}
-    )
-
-}
-

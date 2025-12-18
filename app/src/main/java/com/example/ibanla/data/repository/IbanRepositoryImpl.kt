@@ -1,6 +1,7 @@
 package com.example.ibanla.data.repository
 
 import com.example.ibanla.data.local.IbanDao
+import com.example.ibanla.data.mappers.toIbanEntity
 import com.example.ibanla.data.mappers.toIbanItem
 import com.example.ibanla.data.model.CategoryEntity
 import com.example.ibanla.data.model.IbanEntity
@@ -80,5 +81,9 @@ class IbanRepositoryImpl @Inject constructor(
         if (dao.getCategoryById(1003) == null){
             dao.insertCategory(CategoryEntity(1003,"İş"))
         }
+    }
+
+    override suspend fun updateIbanInfo(ibanItem: IbanItem) {
+        dao.updateIbanInfo(ibanItem.toIbanEntity())
     }
 }
