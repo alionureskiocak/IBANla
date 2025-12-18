@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.ibanla.R
 import com.example.ibanla.data.model.CategoryEntity
-import com.example.ibanla.data.model.IbanWithCategory
+import com.example.ibanla.domain.model.IbanWithCategory
 import com.example.ibanla.domain.model.IbanItem
 
 @Composable

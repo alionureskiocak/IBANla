@@ -1,28 +1,29 @@
 package com.example.ibanla.data.repository
 
 import com.example.ibanla.data.local.IbanDao
+import com.example.ibanla.data.mappers.toCategoryEntity
+import com.example.ibanla.data.mappers.toDomain
 import com.example.ibanla.data.mappers.toIbanEntity
 import com.example.ibanla.data.mappers.toIbanItem
-import com.example.ibanla.data.model.CategoryEntity
-import com.example.ibanla.data.model.IbanEntity
+import com.example.ibanla.domain.model.Category
 import com.example.ibanla.domain.model.IbanItem
 import com.example.ibanla.domain.repository.IbanRepository
-import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import javax.inject.Singleton
 
-@ViewModelScoped
+@Singleton
 class IbanRepositoryImpl @Inject constructor(
     private val dao : IbanDao
 ) : IbanRepository{
-    override suspend fun insertIbanInfo(ibanEntity: IbanEntity) {
-        dao.insertIbanInfo(ibanEntity)
+    override suspend fun insertIbanInfo(ibanItem: IbanItem) {
+        dao.insertIbanInfo(ibanItem.toIbanEntity())
     }
 
-    override suspend fun deleteIbanInfo(ibanEntity: IbanEntity) {
-        dao.deleteIbanInfo(ibanEntity)
+    override suspend fun deleteIbanInfo(ibanItem: IbanItem) {
+        dao.deleteIbanInfo(ibanItem.toIbanEntity())
     }
 
     override fun getAllIbanInfos(): Flow<List<IbanItem>> {
@@ -46,40 +47,44 @@ class IbanRepositoryImpl @Inject constructor(
         return ibans
     }
 
-    override suspend fun insertCategory(categoryEntity: CategoryEntity) {
-        dao.insertCategory(categoryEntity)
+    override suspend fun insertCategory(categoryEntity: Category) {
+        dao.insertCategory(categoryEntity.toCategoryEntity())
     }
 
 
 
-    override suspend fun deleteCategory(categoryEntity: CategoryEntity) {
-        dao.deleteCategory(categoryEntity)
+    override suspend fun deleteCategory(categoryEntity: Category) {
+        dao.deleteCategory(categoryEntity.toCategoryEntity())
     }
 
-    override fun getCategories(): Flow<List<CategoryEntity>> {
-        return dao.getCategories()
+    override fun getCategories(): Flow<List<Category>> {
+        return dao.getCategories().map {
+            it.map {
+                it.toDomain()
+            }
+        }
     }
 
-    override suspend fun getCategoryById(categoryId: Int): CategoryEntity {
-        return dao.getCategoryById(categoryId)!!
+    override suspend fun getCategoryById(categoryId: Int): Category {
+        return dao.getCategoryById(categoryId)!!.toDomain()
     }
 
-    override suspend fun getCategoryByName(name: String): CategoryEntity? {
-        return dao.getCategoryByName(name)
+    override suspend fun getCategoryByName(name: String): Category? {
+        return dao.getCategoryByName(name)?.toDomain()
     }
 
     override suspend fun initializeCategoryId() {
         if (dao.getCategoryById(1000) == null){
-            dao.insertCategory(CategoryEntity(1000,"Benim IBAN'ım"))
+            dao.insertCategory(Category(1000,"Benim IBAN'ım").toCategoryEntity())
         }
         if (dao.getCategoryById(1001) == null){
-            dao.insertCategory(CategoryEntity(1001,"Arkadaşlarım"))
+            dao.insertCategory(Category(1001,"Arkadaşlarım").toCategoryEntity())
         }
         if (dao.getCategoryById(1002) == null){
-            dao.insertCategory(CategoryEntity(1002,"Ailem"))
+            dao.insertCategory(Category(1002,"Ailem").toCategoryEntity())
         }
         if (dao.getCategoryById(1003) == null){
-            dao.insertCategory(CategoryEntity(1003,"İş"))
+            dao.insertCategory(Category(1003,"İş").toCategoryEntity())
         }
     }
 
@@ -87,3 +92,4 @@ class IbanRepositoryImpl @Inject constructor(
         dao.updateIbanInfo(ibanItem.toIbanEntity())
     }
 }
+

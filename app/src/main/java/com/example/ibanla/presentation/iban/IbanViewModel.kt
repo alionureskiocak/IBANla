@@ -2,13 +2,11 @@ package com.example.ibanla.presentation.iban
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.ibanla.data.mappers.toIbanEntity
-import com.example.ibanla.data.model.CategoryEntity
+import com.example.ibanla.domain.model.Category
 import com.example.ibanla.domain.model.IbanItem
 import com.example.ibanla.domain.repository.IbanRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -63,7 +61,7 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    val categorizedIbans: StateFlow<Map<CategoryEntity, List<IbanItem>>> =
+    val categorizedIbans: StateFlow<Map<Category, List<IbanItem>>> =
         combine(repository.getAllIbanInfos(), repository.getCategories()) { ibans, categories ->
             categories
                 .filter { it.id != 1000 }
@@ -88,7 +86,7 @@ class IbanViewModel @Inject constructor(
 
     val myIbansWithCategory = combine(myIbans, categories) { ibans, cats ->
         ibans.map { iban ->
-            val category = cats.find { it.id == iban.categoryId } ?: CategoryEntity(-1, "")
+            val category = cats.find { it.id == iban.categoryId } ?: Category(-1, "")
             iban to category
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
@@ -96,8 +94,7 @@ class IbanViewModel @Inject constructor(
 
     fun addIban(ibanItem: IbanItem) {
         viewModelScope.launch {
-            val ibanEntity = ibanItem.toIbanEntity()
-            repository.insertIbanInfo(ibanEntity)
+            repository.insertIbanInfo(ibanItem)
                _state.update {
                    it.copy(
                        currentTab = if (ibanItem.categoryId == 1000) IbanTab.MY else IbanTab.OTHER
@@ -116,8 +113,7 @@ class IbanViewModel @Inject constructor(
 
     fun deleteIban(ibanItem: IbanItem) {
         viewModelScope.launch {
-            val ibanEntity = ibanItem.toIbanEntity()
-            repository.deleteIbanInfo(ibanEntity)
+            repository.deleteIbanInfo(ibanItem)
         }
     }
 
@@ -127,13 +123,13 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    fun addCategory(categoryEntity: CategoryEntity) {
+    fun addCategory(categoryEntity: Category) {
         viewModelScope.launch {
             repository.insertCategory(categoryEntity)
         }
     }
 
-    fun deleteCategory(categoryEntity: CategoryEntity) {
+    fun deleteCategory(categoryEntity: Category) {
         viewModelScope.launch {
             repository.insertCategory(categoryEntity)
         }
@@ -159,7 +155,7 @@ class IbanViewModel @Inject constructor(
 
 
 
-    fun setCurrentCategory(categoryEntity: CategoryEntity) {
+    fun setCurrentCategory(categoryEntity: Category) {
         viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -183,8 +179,8 @@ data class IbanState(
     val ibanList: List<IbanItem> = emptyList(),
     val categorizedIbanList: List<IbanItem> = emptyList(),
     val currentIban: IbanItem = IbanItem(-1, "", "", "", -1),
-    val categoryList: List<CategoryEntity> = emptyList(),
-    val currentCategory: CategoryEntity = CategoryEntity(1000, ""),
+    val categoryList: List<Category> = emptyList(),
+    val currentCategory: Category = Category(1000, ""),
     val currentTab : IbanTab = IbanTab.MY
 )
 
