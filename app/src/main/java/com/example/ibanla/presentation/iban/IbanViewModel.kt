@@ -8,9 +8,11 @@ import com.example.ibanla.domain.repository.IbanRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -37,6 +39,23 @@ class IbanViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(IbanState())
     val state: StateFlow<IbanState> = _state.asStateFlow()
+
+    private val _effect = MutableSharedFlow<IbanEffect>()
+    val effect = _effect.asSharedFlow()
+
+    fun onEvent(event : IbanEvent){
+        when(event){
+            is IbanEvent.CopyIban -> handleCopy(event.iban)
+        }
+    }
+
+    private fun handleCopy(iban : String){
+        viewModelScope.launch {
+            _effect.emit(IbanEffect.ShowToast("Copied"))
+            _effect.emit(IbanEffect.StartCopyTick)
+            startCopiedTimer()
+        }
+    }
 
     private val _showTick = MutableStateFlow(false)
     val showTick : StateFlow<Boolean> = _showTick.asStateFlow()

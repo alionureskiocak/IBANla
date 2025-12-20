@@ -84,8 +84,18 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
     var clickedForNewIban by remember { mutableStateOf(false) }
 
     val clipboardManager = LocalClipboardManager.current
-    val context = LocalContext.current
     val showTick by viewModel.showTick.collectAsState()
+
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect {
+            when(it){
+                is IbanEffect.ShowToast ->
+                    Toast.makeText(context,it.message,Toast.LENGTH_SHORT).show()
+                else -> {}
+            }
+        }
+    }
 
 
 
@@ -213,8 +223,7 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                                     clipboardManager.setText(
                                         AnnotatedString(iban)
                                     )
-                                    Toast.makeText(context,"Copied",Toast.LENGTH_SHORT).show()
-                                    viewModel.startCopiedTimer()
+                                    viewModel.onEvent(IbanEvent.CopyIban(iban))
                                 }
                             )
                         }
