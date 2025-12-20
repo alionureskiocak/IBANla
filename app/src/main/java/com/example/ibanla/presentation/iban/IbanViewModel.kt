@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -37,8 +36,52 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    private val _state = MutableStateFlow(IbanState())
-    val state: StateFlow<IbanState> = _state.asStateFlow()
+    private val myIbansFlow = repository.getIbanInfosByCategory(1000)
+
+    private val categoriesFlow = repository.getCategories()
+
+    private val allIbansFlow = repository.getAllIbanInfos()
+
+   private val repositoryState : StateFlow<IbanUiState> =
+        combine(
+            myIbansFlow,
+            categoriesFlow,
+            allIbansFlow
+        ){ myIbans, categories, allIbans ->
+
+            val categorized = categories
+                .filter { it.id != 1000 }
+                .associateWith { category ->
+                    allIbans.filter { it.categoryId == category.id}
+                }
+                .filterValues { it.isNotEmpty() }
+
+            IbanUiState(
+                myIbans,categorized,categories
+            )
+
+        }.stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000), IbanUiState()
+        )
+
+    private val _uiState = MutableStateFlow(IbanUiState())
+
+    val state : StateFlow<IbanUiState> =
+        combine(
+            repositoryState,
+            _uiState
+        ) { repo, ui ->
+            repo.copy(
+                currentIban = ui.currentIban,
+                currentTab = ui.currentTab,
+                currentCategory = ui.currentCategory,
+                showTick = ui.showTick
+            )
+        }.stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000), IbanUiState()
+        )
+
+
 
     private val _effect = MutableSharedFlow<IbanEffect>()
     val effect = _effect.asSharedFlow()
@@ -47,8 +90,38 @@ class IbanViewModel @Inject constructor(
         when(event){
             is IbanEvent.CopyIban -> handleCopy(event.iban)
             is IbanEvent.TabSelected -> handleTabSelected(event.tab)
+            is IbanEvent.IbanSelected -> handleIbanSelected(event.iban,event.category)
+            is IbanEvent.CategorySelected -> handleCategorySelected(event.category)
+            is IbanEvent.AddIban -> addIban(event.iban)
+            is IbanEvent.UpdateIban -> updateIban(event.iban)
+            is IbanEvent.DeleteIban -> deleteIban(event.iban)
+
+            is IbanEvent.AddCategory -> addCategory(event.category)
         }
     }
+
+    private var timerJob : Job? = null
+
+    fun startCopiedTimer(){
+        if (timerJob?.isActive == true) return
+
+        var countDown = 3
+
+        timerJob = viewModelScope.launch {
+            _uiState.update { it.copy(showTick = true) }
+            while (isActive){
+                delay(1000)
+                countDown--
+                if (countDown == 0){
+                    timerJob?.cancel()
+                    _uiState.update { it.copy(showTick = false) }
+                }
+            }
+        }
+    }
+
+
+
 
     private fun handleCopy(iban : String){
         viewModelScope.launch {
@@ -59,67 +132,35 @@ class IbanViewModel @Inject constructor(
     }
 
     private fun handleTabSelected(tab : IbanTab){
-        _state.update { it.copy(currentTab = tab) }
+        _uiState.update { it.copy(currentTab = tab) }
     }
 
-    private val _showTick = MutableStateFlow(false)
-    val showTick : StateFlow<Boolean> = _showTick.asStateFlow()
-
-    private var timerJob : Job? = null
-
-    fun startCopiedTimer(){
-        if (timerJob?.isActive == true) return
-
-        var countDown = 3
-
-        timerJob = viewModelScope.launch {
-            _showTick.value = true
-            while (isActive){
-                delay(1000)
-                countDown--
-                if (countDown == 0){
-                    timerJob?.cancel()
-                    _showTick.value = false
-                }
-            }
+    private fun handleIbanSelected(
+        iban : IbanItem,
+        category : Category
+    ){
+        _uiState.update {
+            it.copy(
+                currentIban = iban,
+                currentCategory = category
+            )
         }
     }
 
-    val categorizedIbans: StateFlow<Map<Category, List<IbanItem>>> =
-        combine(repository.getAllIbanInfos(), repository.getCategories()) { ibans, categories ->
-            categories
-                .filter { it.id != 1000 }
-                .associateWith { category ->
-                ibans.filter {
-                    it.categoryId == category.id
-                }
-            }
-                .filterValues {
-                    it.isNotEmpty()
-                }
-
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyMap())
-
-    val myIbans: StateFlow<List<IbanItem>> = repository.getIbanInfosByCategory(1000)
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
-
-    val categories = repository.getCategories().stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(), emptyList()
-    )
-
-    val myIbansWithCategory = combine(myIbans, categories) { ibans, cats ->
-        ibans.map { iban ->
-            val category = cats.find { it.id == iban.categoryId } ?: Category(-1, "")
-            iban to category
+    private fun handleCategorySelected(
+        category: Category
+    ){
+        _uiState.update {
+            it.copy(
+                currentCategory = category
+            )
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+    }
 
-
-    fun addIban(ibanItem: IbanItem) {
+    private fun addIban(ibanItem: IbanItem) {
         viewModelScope.launch {
             repository.insertIbanInfo(ibanItem)
-               _state.update {
+               _uiState.update {
                    it.copy(
                        currentTab = if (ibanItem.categoryId == 1000) IbanTab.MY else IbanTab.OTHER
                    )
@@ -127,33 +168,25 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-    fun onTabSelected(tab : IbanTab){
-        _state.update {
-            it.copy(
-                currentTab = tab
-            )
-        }
-    }
-
-    fun deleteIban(ibanItem: IbanItem) {
+    private fun deleteIban(ibanItem: IbanItem) {
         viewModelScope.launch {
             repository.deleteIbanInfo(ibanItem)
         }
     }
 
-    fun updateIban(ibanItem: IbanItem){
+    private fun updateIban(ibanItem: IbanItem){
         viewModelScope.launch {
             repository.updateIbanInfo(ibanItem)
         }
     }
 
-    fun addCategory(categoryEntity: Category) {
+    private fun addCategory(categoryEntity: Category) {
         viewModelScope.launch {
             repository.insertCategory(categoryEntity)
         }
     }
 
-    fun deleteCategory(categoryEntity: Category) {
+    private fun deleteCategory(categoryEntity: Category) {
         viewModelScope.launch {
             repository.insertCategory(categoryEntity)
         }
@@ -163,7 +196,7 @@ class IbanViewModel @Inject constructor(
     fun getCategoryById(categoryId: Int) {
         viewModelScope.launch {
             val category = repository.getCategoryById(categoryId)
-            _state.update {
+            _uiState.update {
                 it.copy(
                     currentCategory = category
                 )
@@ -177,35 +210,16 @@ class IbanViewModel @Inject constructor(
         }
     }
 
-
-
-    fun setCurrentCategory(categoryEntity: Category) {
-        viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    currentCategory = categoryEntity
-                )
-            }
-        }
-    }
-
-    fun setCurrentIban(ibanItem: IbanItem) {
-        _state.update {
-            it.copy(
-                currentIban = ibanItem
-            )
-        }
-    }
-
 }
 
-data class IbanState(
-    val ibanList: List<IbanItem> = emptyList(),
-    val categorizedIbanList: List<IbanItem> = emptyList(),
+data class IbanUiState(
+    val myIbans : List<IbanItem> = emptyList(),
+    val categorizedIbans : Map<Category, List<IbanItem>> = emptyMap(),
+    val categories : List<Category> = emptyList(),
+    val currentTab : IbanTab = IbanTab.MY,
     val currentIban: IbanItem = IbanItem(-1, "", "", "", -1),
-    val categoryList: List<Category> = emptyList(),
     val currentCategory: Category = Category(1000, ""),
-    val currentTab : IbanTab = IbanTab.MY
+    val showTick : Boolean = false
 )
 
 enum class IbanTab{

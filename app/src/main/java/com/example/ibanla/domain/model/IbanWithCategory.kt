@@ -4,5 +4,5 @@ import com.example.ibanla.data.model.CategoryEntity
 
 data class IbanWithCategory(
     val ibanItem: IbanItem,
-    val categoryEntity: CategoryEntity
+    val categoryEntity: Category
 )

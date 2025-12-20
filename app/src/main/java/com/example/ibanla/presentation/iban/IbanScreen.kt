@@ -61,7 +61,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.ibanla.R
-import com.example.ibanla.data.model.CategoryEntity
+import com.example.ibanla.domain.model.Category
 import com.example.ibanla.domain.model.IbanWithCategory
 import com.example.ibanla.domain.model.IbanItem
 
@@ -69,14 +69,12 @@ import com.example.ibanla.domain.model.IbanItem
 fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
 
     val state by viewModel.state.collectAsState()
-    val categories by viewModel.categories.collectAsState()
+    val categories = state.categories
     val currentIban = state.currentIban
     val currentCategory = state.currentCategory
-    println(categories)
-    val myIbans by viewModel.myIbans.collectAsState()
-    val myIbansWithCategory by viewModel.myIbansWithCategory.collectAsState()
-    println(myIbans)
-    val otherIbans by viewModel.categorizedIbans.collectAsState()
+    val myIbans = state.myIbans
+    val otherIbansWithCategory = state.categorizedIbans
+    val showTick = state.showTick
     val selectedTab = state.currentTab
     var showIbanDialog by remember { mutableStateOf(false) }
     var showCategoryDialog by remember { mutableStateOf(false) }
@@ -84,7 +82,6 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
     var clickedForNewIban by remember { mutableStateOf(false) }
 
     val clipboardManager = LocalClipboardManager.current
-    val showTick by viewModel.showTick.collectAsState()
 
     val context = LocalContext.current
     LaunchedEffect(Unit) {
@@ -151,10 +148,8 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                         showCategoryDialog = false
                     },
                     onCategoryAdded = {
-                        viewModel.addCategory(
-                            CategoryEntity(
-                                categoryName = it
-                            )
+                        viewModel.onEvent(
+                            IbanEvent.AddCategory(Category(id = -1,name = it))
                         )
                     }
                 )
@@ -207,16 +202,20 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                 if (it) {
 
                     LazyColumn {
-                        items(myIbansWithCategory) { (ibanItem, category) ->
+                        items(myIbans) { ibanItem ->
+                            val category = categories.first{it.id == 1000}
                             IbanCard(
                                 ibanItem = ibanItem,
                                 category = category,
                                 showTick = showTick,
                                 onCardClick = { ibanWithCategory ->
                                     val ibanItem = ibanWithCategory.ibanItem
-                                    val categoryEntity = ibanWithCategory.categoryEntity
-                                    viewModel.setCurrentIban(ibanItem)
-                                    viewModel.setCurrentCategory(categoryEntity)
+                                    viewModel.onEvent(
+                                        IbanEvent.IbanSelected(ibanItem,category)
+                                    )
+                                    viewModel.onEvent(
+                                        IbanEvent.CategorySelected(category)
+                                    )
                                     showIbanDialog = true
                                     clickedForNewIban = false
                                 },
@@ -233,10 +232,10 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
 
                 } else {
                     LazyColumn {
-                        otherIbans.forEach { (category, ibans) ->
+                        otherIbansWithCategory.forEach { (category, ibans) ->
                             item {
                                 Text(
-                                    text = category.categoryName,
+                                    text = category.name,
                                     style = MaterialTheme.typography.titleMedium,
                                     modifier = Modifier.padding(8.dp)
                                 )
@@ -250,8 +249,12 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                                     onCardClick = { ibanWithCategory ->
                                         val ibanItem = ibanWithCategory.ibanItem
                                         val categoryEntity = ibanWithCategory.categoryEntity
-                                        viewModel.setCurrentIban(ibanItem)
-                                        viewModel.setCurrentCategory(categoryEntity)
+                                        viewModel.onEvent(
+                                            IbanEvent.IbanSelected(ibanItem,category)
+                                        )
+                                        viewModel.onEvent(
+                                            IbanEvent.CategorySelected(category)
+                                        )
                                         showIbanDialog = true
                                         clickedForNewIban = false
                                     },
@@ -259,8 +262,9 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                                         clipboardManager.setText(
                                             AnnotatedString(iban)
                                         )
-                                        Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
-                                        viewModel.startCopiedTimer()
+                                        viewModel.onEvent(
+                                            IbanEvent.CopyIban(iban)
+                                        )
                                     })
                             }
 
@@ -276,8 +280,8 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
 fun IbanDialogScreen(
     clickedForNewIban : Boolean,
     currentIban : IbanItem,
-    currentCategory : CategoryEntity,
-    categories: List<CategoryEntity>,
+    currentCategory : Category,
+    categories: List<Category>,
     showFirst: Boolean,
     viewModel: IbanViewModel,
     onDismiss: () -> Unit,
@@ -286,7 +290,7 @@ fun IbanDialogScreen(
 
     var ibanText by remember { mutableStateOf("") }
     var ownerText by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+    var selectedCategory by remember { mutableStateOf<Category?>(null) }
     var selectedCategoryChanged by remember { mutableStateOf(false) }
 
     if (!clickedForNewIban){
@@ -350,7 +354,7 @@ fun IbanDialogScreen(
                                     }
                                     selectedCategory = category
                                 },
-                                label = { Text(category.categoryName, textAlign = TextAlign.Center) }
+                                label = { Text(category.name, textAlign = TextAlign.Center) }
                             )
 
                         }
@@ -380,23 +384,29 @@ fun IbanDialogScreen(
                     onClick = {
                         onDismiss()
                         if (clickedForNewIban){
-                            viewModel.addIban(
-                                IbanItem(
-                                    id = 0,
-                                    iban = ibanText,
-                                    ownerName = ownerText,
-                                    bankName = getBankNameByIban(ibanText),
-                                    categoryId = selectedCategory?.id!!
+                            viewModel.onEvent(
+                                IbanEvent.AddIban(
+                                    IbanItem(
+                                        id = 0,
+                                        iban = ibanText,
+                                        ownerName = ownerText,
+                                        bankName = getBankNameByIban(ibanText),
+                                        categoryId = selectedCategory?.id!!
+                                    )
                                 )
                             )
                         }else{
-                           viewModel.updateIban(IbanItem(
-                               currentIban.id,
-                               ibanText,
-                               ownerText,
-                               getBankNameByIban(ibanText),
-                               selectedCategory!!.id
-                           ))
+                           viewModel.onEvent(
+                               IbanEvent.UpdateIban(
+                                   IbanItem(
+                                       currentIban.id,
+                                       ibanText,
+                                       ownerText,
+                                       getBankNameByIban(ibanText),
+                                       selectedCategory!!.id
+                                   )
+                               )
+                           )
                         }
 
                     }
@@ -452,7 +462,7 @@ fun getBankNameByIban(iban: String): String {
 @Composable
 fun IbanCard(
     ibanItem : IbanItem,
-    category: CategoryEntity,
+    category: Category,
     showTick : Boolean,
     onCardClick : (IbanWithCategory) -> Unit,
     onCopyClick: (String) -> Unit
@@ -521,7 +531,7 @@ fun IbanCard(
                 )
 
                 Text(
-                    text = category.categoryName,
+                    text = category.name,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
