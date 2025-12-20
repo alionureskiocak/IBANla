@@ -46,6 +46,7 @@ class IbanViewModel @Inject constructor(
     fun onEvent(event : IbanEvent){
         when(event){
             is IbanEvent.CopyIban -> handleCopy(event.iban)
+            is IbanEvent.TabSelected -> handleTabSelected(event.tab)
         }
     }
 
@@ -55,6 +56,10 @@ class IbanViewModel @Inject constructor(
             _effect.emit(IbanEffect.StartCopyTick)
             startCopiedTimer()
         }
+    }
+
+    private fun handleTabSelected(tab : IbanTab){
+        _state.update { it.copy(currentTab = tab) }
     }
 
     private val _showTick = MutableStateFlow(false)

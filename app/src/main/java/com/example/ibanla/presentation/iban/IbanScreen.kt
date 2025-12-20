@@ -165,8 +165,9 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                     SegmentedButton(
                         selected = selectedIndex == index,
                         onClick = {
-                            viewModel.onTabSelected(
-                                if (index == 0) IbanTab.MY else IbanTab.OTHER
+                            viewModel.onEvent(
+                                IbanEvent.TabSelected(
+                                if (index == 0) IbanTab.MY else IbanTab.OTHER)
                             )
 
                         },
