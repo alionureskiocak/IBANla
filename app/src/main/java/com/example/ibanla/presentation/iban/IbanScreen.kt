@@ -3,14 +3,19 @@ package com.example.ibanla.presentation.iban
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +56,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -293,11 +300,14 @@ fun IbanDialogScreen(
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
     var selectedCategoryChanged by remember { mutableStateOf(false) }
 
-    if (!clickedForNewIban){
-        ibanText = currentIban.iban
-        ownerText = currentIban.ownerName
-        selectedCategory = currentCategory
+    LaunchedEffect(currentIban.id) {
+        if (!clickedForNewIban){
+            ibanText = currentIban.iban
+            ownerText = currentIban.ownerName
+            selectedCategory = currentCategory
+        }
     }
+
 
     var ibanUpdateText by remember { mutableStateOf(ibanText) }
     var ownerUpdateText by remember { mutableStateOf(ownerText) }
@@ -483,16 +493,32 @@ fun IbanCard(
     onCopyClick: (String) -> Unit
 ) {
     val bankLogo = getLogoById(ibanItem.iban)
+
+    var interaction = remember { MutableInteractionSource() }
+    val isPressed by interaction.collectIsPressedAsState()
+
+    var animatedScale = animateFloatAsState(
+        if (isPressed) 0.9f else 1f,
+        animationSpec = tween(
+            durationMillis = 120
+        )
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .scale(animatedScale.value)
             .padding(horizontal = 12.dp, vertical = 6.dp)
-            .clickable{
-                val ibanWithCategory = IbanWithCategory(
-                    ibanItem,category
-                )
-                onCardClick(ibanWithCategory)
-            }
+           .clickable(
+               interactionSource = interaction,
+               indication = LocalIndication.current,
+               onClick = {
+                   val ibanWithCategory = IbanWithCategory(
+                       ibanItem,category
+                   )
+                   onCardClick(ibanWithCategory)
+               }
+           )
         ,
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
