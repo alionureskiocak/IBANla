@@ -241,7 +241,7 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                                 )
                             }
                             items(ibans) { ibanItem ->
-                                viewModel.getCategoryById(ibanItem.categoryId)
+                                //viewModel.getCategoryById(ibanItem.categoryId)
                                 IbanCard(
                                     ibanItem = ibanItem,
                                     category = category,
@@ -375,44 +375,59 @@ fun IbanDialogScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    enabled = (clickedForNewIban && selectedCategory?.id != null && ibanText.length >= 26)
-                            || selectedCategory?.id != null && ibanText.length >= 26 && (
-                                    ibanText != ibanUpdateText || ownerText != ownerUpdateText
-                                    ) || selectedCategoryChanged
-                    ,
-                    onClick = {
-                        onDismiss()
-                        if (clickedForNewIban){
-                            viewModel.onEvent(
-                                IbanEvent.AddIban(
-                                    IbanItem(
-                                        id = 0,
-                                        iban = ibanText,
-                                        ownerName = ownerText,
-                                        bankName = getBankNameByIban(ibanText),
-                                        categoryId = selectedCategory?.id!!
+
+                    if (!clickedForNewIban){
+                        TextButton(
+                            onClick = {
+                                viewModel.onEvent(
+                                    IbanEvent.DeleteIban(currentIban)
+                                )
+                                onDismiss()
+                            }
+                        ) {
+                            Text("Sil")
+                        }
+                    }
+                    Button(
+                        enabled = (clickedForNewIban && selectedCategory?.id != null && ibanText.length >= 26)
+                                || selectedCategory?.id != null && ibanText.length >= 26 && (
+                                ibanText != ibanUpdateText || ownerText != ownerUpdateText
+                                ) || selectedCategoryChanged
+                        ,
+                        onClick = {
+                            onDismiss()
+                            if (clickedForNewIban){
+                                viewModel.onEvent(
+                                    IbanEvent.AddIban(
+                                        IbanItem(
+                                            id = 0,
+                                            iban = ibanText,
+                                            ownerName = ownerText,
+                                            bankName = getBankNameByIban(ibanText),
+                                            categoryId = selectedCategory?.id!!
+                                        )
                                     )
                                 )
-                            )
-                        }else{
-                           viewModel.onEvent(
-                               IbanEvent.UpdateIban(
-                                   IbanItem(
-                                       currentIban.id,
-                                       ibanText,
-                                       ownerText,
-                                       getBankNameByIban(ibanText),
-                                       selectedCategory!!.id
-                                   )
-                               )
-                           )
-                        }
+                            }else{
+                                viewModel.onEvent(
+                                    IbanEvent.UpdateIban(
+                                        IbanItem(
+                                            currentIban.id,
+                                            ibanText,
+                                            ownerText,
+                                            getBankNameByIban(ibanText),
+                                            selectedCategory!!.id
+                                        )
+                                    )
+                                )
+                            }
 
+                        }
+                    ) {
+                        Text(if(clickedForNewIban)"Ekle" else "Güncelle")
                     }
-                ) {
-                    Text(if(clickedForNewIban)"Ekle" else "Güncelle")
-                }
+
+
             },
             dismissButton = {
                 TextButton(onClick = { onDismiss() }) {

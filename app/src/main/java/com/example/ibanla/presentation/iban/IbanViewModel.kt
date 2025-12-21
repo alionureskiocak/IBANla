@@ -171,7 +171,9 @@ class IbanViewModel @Inject constructor(
     private fun deleteIban(ibanItem: IbanItem) {
         viewModelScope.launch {
             repository.deleteIbanInfo(ibanItem)
+            _effect.emit(IbanEffect.ShowToast("Iban silindi"))
         }
+
     }
 
     private fun updateIban(ibanItem: IbanItem){
@@ -188,7 +190,7 @@ class IbanViewModel @Inject constructor(
 
     private fun deleteCategory(categoryEntity: Category) {
         viewModelScope.launch {
-            repository.insertCategory(categoryEntity)
+            repository.deleteCategory(categoryEntity)
         }
     }
 
