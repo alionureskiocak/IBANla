@@ -24,6 +24,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.ibanla.domain.model.BottomNavigationItem
 import com.example.ibanla.presentation.iban.IbanScreen
+import com.example.ibanla.ui.theme.IBANlaTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -33,8 +34,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
 
-            val navController = rememberNavController()
-            SetUpNavigation(navController)
+            IBANlaTheme(
+                darkTheme = true
+            ) {
+                val navController = rememberNavController()
+                SetUpNavigation(navController)
+
+            }
 
         }
     }
