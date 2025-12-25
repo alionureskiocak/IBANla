@@ -7,7 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.Wallet
+import androidx.compose.material.icons.outlined.Cake
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,6 +26,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.ibanla.domain.model.BottomNavigationItem
 import com.example.ibanla.presentation.iban.IbanScreen
+import com.example.ibanla.presentation.ibanquery.IbanQueryScreen
 import com.example.ibanla.ui.theme.IBANlaTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -55,6 +58,12 @@ fun SetUpNavigation(navController : NavHostController) {
             title = "Iban'lar",
             selectedIcon = Icons.Filled.Wallet,
             unselectedIcon = Icons.Default.Wallet
+        ),
+        BottomNavigationItem(
+            route = "IbanQueryScreen",
+            title = "Iban Sorgula",
+            selectedIcon = Icons.Filled.Cake,
+            unselectedIcon = Icons.Outlined.Cake
         )
     )
     Surface(
@@ -90,6 +99,7 @@ fun SetUpNavigation(navController : NavHostController) {
                 modifier = Modifier.padding(paddingValue)
                 ){
                 composable("IbanScreen") { IbanScreen() }
+                composable("IbanQueryScreen") { IbanQueryScreen() }
             }
         }
     }
