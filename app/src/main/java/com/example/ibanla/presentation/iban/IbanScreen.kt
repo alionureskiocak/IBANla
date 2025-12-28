@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -57,6 +58,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -66,6 +68,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.ibanla.R
 import com.example.ibanla.domain.model.Category
@@ -131,6 +134,12 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
             var showFirst = selectedTab == IbanTab.MY
             val titles = listOf("IBAN'larım", "Diğer IBAN'lar")
 
+            Text(
+                text = "Kayıtlı IBAN'lar",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
 
             if (showIbanDialog) {
                 IbanDialogScreen(
@@ -162,14 +171,16 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                 )
             }
 
-            SingleChoiceSegmentedButtonRow {
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
                 titles.forEachIndexed { index, item ->
                     SegmentedButton(
                         selected = selectedIndex == index,
                         onClick = {
                             viewModel.onEvent(
                                 IbanEvent.TabSelected(
-                                if (index == 0) IbanTab.MY else IbanTab.OTHER)
+                                    if (index == 0) IbanTab.MY else IbanTab.OTHER)
                             )
 
                         },
@@ -244,11 +255,11 @@ fun IbanScreen(viewModel: IbanViewModel = hiltViewModel()) {
                                 Text(
                                     text = category.name,
                                     style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.padding(8.dp)
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
                                 )
                             }
                             items(ibans) { ibanItem ->
-                                //viewModel.getCategoryById(ibanItem.categoryId)
                                 IbanCard(
                                     ibanItem = ibanItem,
                                     category = category,
@@ -376,7 +387,7 @@ fun IbanDialogScreen(
                     {
                         FilterChip(
                             selected = false,
-                            label = { Text(text = "Kategori Ekle") },
+                            label = { Text(text = "Yeni Kategori +") },
                             onClick = {
                                 onCategoryAdded()
                             }
@@ -386,56 +397,56 @@ fun IbanDialogScreen(
             },
             confirmButton = {
 
-                    if (!clickedForNewIban){
-                        TextButton(
-                            onClick = {
-                                viewModel.onEvent(
-                                    IbanEvent.DeleteIban(currentIban)
-                                )
-                                onDismiss()
-                            }
-                        ) {
-                            Text("Sil")
-                        }
-                    }
-                    Button(
-                        enabled = (clickedForNewIban && selectedCategory?.id != null && ibanText.length >= 26)
-                                || selectedCategory?.id != null && ibanText.length >= 26 && (
-                                ibanText != ibanUpdateText || ownerText != ownerUpdateText
-                                ) || selectedCategoryChanged
-                        ,
+                if (!clickedForNewIban){
+                    TextButton(
                         onClick = {
+                            viewModel.onEvent(
+                                IbanEvent.DeleteIban(currentIban)
+                            )
                             onDismiss()
-                            if (clickedForNewIban){
-                                viewModel.onEvent(
-                                    IbanEvent.AddIban(
-                                        IbanItem(
-                                            id = 0,
-                                            iban = ibanText,
-                                            ownerName = ownerText,
-                                            bankName = getBankNameByIban(ibanText),
-                                            categoryId = selectedCategory?.id!!
-                                        )
-                                    )
-                                )
-                            }else{
-                                viewModel.onEvent(
-                                    IbanEvent.UpdateIban(
-                                        IbanItem(
-                                            currentIban.id,
-                                            ibanText,
-                                            ownerText,
-                                            getBankNameByIban(ibanText),
-                                            selectedCategory!!.id
-                                        )
-                                    )
-                                )
-                            }
-
                         }
                     ) {
-                        Text(if(clickedForNewIban)"Ekle" else "Güncelle")
+                        Text("Sil")
                     }
+                }
+                Button(
+                    enabled = (clickedForNewIban && selectedCategory?.id != null && ibanText.length >= 26)
+                            || selectedCategory?.id != null && ibanText.length >= 26 && (
+                            ibanText != ibanUpdateText || ownerText != ownerUpdateText
+                            ) || selectedCategoryChanged
+                    ,
+                    onClick = {
+                        onDismiss()
+                        if (clickedForNewIban){
+                            viewModel.onEvent(
+                                IbanEvent.AddIban(
+                                    IbanItem(
+                                        id = 0,
+                                        iban = ibanText,
+                                        ownerName = ownerText,
+                                        bankName = getBankNameByIban(ibanText),
+                                        categoryId = selectedCategory?.id!!
+                                    )
+                                )
+                            )
+                        }else{
+                            viewModel.onEvent(
+                                IbanEvent.UpdateIban(
+                                    IbanItem(
+                                        currentIban.id,
+                                        ibanText,
+                                        ownerText,
+                                        getBankNameByIban(ibanText),
+                                        selectedCategory!!.id
+                                    )
+                                )
+                            )
+                        }
+
+                    }
+                ) {
+                    Text(if(clickedForNewIban)"Ekle" else "Güncelle")
+                }
 
 
             },
@@ -498,9 +509,9 @@ fun IbanCard(
     val isPressed by interaction.collectIsPressedAsState()
 
     var animatedScale = animateFloatAsState(
-        if (isPressed) 0.9f else 1f,
+        if (isPressed) 0.97f else 1f,
         animationSpec = tween(
-            durationMillis = 120
+            durationMillis = 100
         )
     )
 
@@ -508,85 +519,118 @@ fun IbanCard(
         modifier = Modifier
             .fillMaxWidth()
             .scale(animatedScale.value)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-           .clickable(
-               interactionSource = interaction,
-               indication = LocalIndication.current,
-               onClick = {
-                   val ibanWithCategory = IbanWithCategory(
-                       ibanItem,category
-                   )
-                   onCardClick(ibanWithCategory)
-               }
-           )
-        ,
-        shape = RoundedCornerShape(14.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(
+                interactionSource = interaction,
+                indication = LocalIndication.current,
+                onClick = {
+                    val ibanWithCategory = IbanWithCategory(
+                        ibanItem, category
+                    )
+                    onCardClick(ibanWithCategory)
+                }
+            ),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(68.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(bankLogo),
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
 
+                Spacer(Modifier.width(16.dp))
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = ibanItem.ownerName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Text(
+                        text = ibanItem.iban.chunked(4).joinToString(" "),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 13.sp,
+                            letterSpacing = 0.5.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = category.name,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        if (ibanItem.bankName!!.isNotEmpty()) {
+                            Text(
+                                text = "• ${ibanItem.bankName}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
 
             Box(
                 modifier = Modifier
-                    .size(52.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        RoundedCornerShape(12.dp)
-                    ),
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+                    .clickable { onCopyClick(ibanItem.iban) },
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(bankLogo),
+                Icon(
+                    imageVector = if (!showTick) Icons.Default.ContentCopy else Icons.Default.CheckCircle,
                     contentDescription = null,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
-
-            Spacer(Modifier.width(12.dp))
-
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = ibanItem.ownerName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Text(
-                    text = ibanItem.iban.chunked(4).joinToString(" "),
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-
-            Icon(
-                imageVector =if (!showTick) Icons.Default.ContentCopy else Icons.Default.CheckCircle,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(20.dp)
-                    .clickable { onCopyClick(ibanItem.iban) },
-                tint = MaterialTheme.colorScheme.primary
-            )
         }
     }
 }
