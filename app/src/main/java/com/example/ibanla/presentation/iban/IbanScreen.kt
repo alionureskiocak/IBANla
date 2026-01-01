@@ -67,6 +67,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -494,142 +495,164 @@ fun getBankNameByIban(iban: String): String {
         else -> ""
     }
 }
-
 @Composable
 fun IbanCard(
-    ibanItem : IbanItem,
+    ibanItem: IbanItem,
     category: Category,
-    showTick : Boolean,
-    onCardClick : (IbanWithCategory) -> Unit,
+    showTick: Boolean,
+    onCardClick: (IbanWithCategory) -> Unit,
     onCopyClick: (String) -> Unit
 ) {
     val bankLogo = getLogoById(ibanItem.iban)
 
-    var interaction = remember { MutableInteractionSource() }
+    val interaction = remember { MutableInteractionSource() }
     val isPressed by interaction.collectIsPressedAsState()
 
-    var animatedScale = animateFloatAsState(
-        if (isPressed) 0.97f else 1f,
-        animationSpec = tween(
-            durationMillis = 100
-        )
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "cardScale"
     )
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .scale(animatedScale.value)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .scale(animatedScale)
+            .padding(horizontal = 16.dp, vertical = 6.dp) // 👈 dikey padding küçüldü
             .clickable(
                 interactionSource = interaction,
-                indication = LocalIndication.current,
-                onClick = {
-                    val ibanWithCategory = IbanWithCategory(
-                        ibanItem, category
-                    )
-                    onCardClick(ibanWithCategory)
-                }
-            ),
+                indication = LocalIndication.current
+            ) {
+                onCardClick(IbanWithCategory(ibanItem, category))
+            },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
+
+            // ÜST SATIR
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 8.dp, end = 12.dp, top = 10.dp), // 👈 üst padding küçüldü
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                        ),
-                    contentAlignment = Alignment.Center
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Image(
-                        painter = painterResource(bankLogo),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp)
-                    )
+
+                    // LOGO (daha sola + daha küçük)
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp) // 80 → 64
+                            .clip(RoundedCornerShape(14.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(bankLogo),
+                            contentDescription = null,
+                            modifier = Modifier.size(52.dp) // 60 → 52
+                        )
+                    }
+
+                    Spacer(Modifier.width(4.dp)) // 6 → 4
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp) // 👈 sıkılaştırıldı
+                    ) {
+                        Text(
+                            text = ibanItem.ownerName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        Text(
+                            text = ibanItem.iban.replace(" ", ""),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
-                Spacer(Modifier.width(16.dp))
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                // COPY BUTTON
+                Box(
+                    modifier = Modifier
+                        .size(42.dp) // 44 → 42
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                        )
+                        .clickable { onCopyClick(ibanItem.iban) },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = ibanItem.ownerName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    Icon(
+                        imageVector = if (!showTick)
+                            Icons.Default.ContentCopy
+                        else
+                            Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
-
-                    Text(
-                        text = ibanItem.iban.chunked(4).joinToString(" "),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 13.sp,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.primaryContainer,
-                                    RoundedCornerShape(6.dp)
-                                )
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = category.name,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        if (ibanItem.bankName!!.isNotEmpty()) {
-                            Text(
-                                text = "• ${ibanItem.bankName}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
                 }
             }
 
-            Box(
+            // ALT SATIR (kategori + banka)
+            Row(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
-                    .clickable { onCopyClick(ibanItem.iban) },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(
+                        start = 78.dp, // logo küçüldü → padding azaldı
+                        end = 56.dp,
+                        top = 6.dp,
+                        bottom = 10.dp // 👈 alt padding küçüldü
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Icon(
-                    imageVector = if (!showTick) Icons.Default.ContentCopy else Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
+
+                Box(
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            RoundedCornerShape(6.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = category.name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                if (!ibanItem.bankName.isNullOrEmpty()) {
+                    Text(
+                        text = "• ${ibanItem.bankName}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
